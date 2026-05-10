@@ -1,0 +1,25 @@
+namespace TuCita.Application.Citas;
+
+public sealed record CitaDto(
+    int IdCita,
+    int IdNegocio,
+    string Negocio,
+    int IdCliente,
+    string Cliente,
+    int IdServicio,
+    string Servicio,
+    int? IdPrestador,
+    string? Prestador,
+    int IdEstadoCita,
+    string EstadoCita,
+    bool EsEstadoFinal,
+    string Codigo,
+    DateTime FechaInicio,
+    DateTime FechaFin,
+    string? ComentarioCliente,
+    string? NotaInterna,
+    decimal PrecioEstimado,
+    DateTime FechaCreacion,
+    DateTime? FechaActualizacion,
+    IReadOnlyCollection<CitaCampoValorDto> CamposValor,
+    IReadOnlyCollection<CitaHistorialDto> Historial);

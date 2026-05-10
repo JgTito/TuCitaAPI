@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="TuCita.Api/TuCita.Api.csproj" />
+  <Project Path="TuCita.Application/TuCita.Application.csproj" />
+  <Project Path="TuCita.Infrastucture/TuCita.Infrastucture.csproj" />
+</Solution>
