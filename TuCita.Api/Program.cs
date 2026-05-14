@@ -142,6 +142,7 @@ app.UseStaticFiles();
 app.UseCors();
 
 app.UseAuthentication();
+app.UseMiddleware<ActiveUserMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();

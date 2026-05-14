@@ -128,6 +128,12 @@ public sealed class AuthService(
             return InvalidCredentials();
         }
 
+        if (await userManager.IsLockedOutAsync(user) ||
+            !await UserIsActiveAsync(user.Id, cancellationToken))
+        {
+            return InvalidCredentials();
+        }
+
         var passwordIsValid = await userManager.CheckPasswordAsync(user, request.Password);
         if (!passwordIsValid)
         {
@@ -160,6 +166,12 @@ public sealed class AuthService(
 
         var user = await userManager.FindByIdAsync(refreshToken.UserId);
         if (user is null)
+        {
+            return InvalidRefreshToken();
+        }
+
+        if (await userManager.IsLockedOutAsync(user) ||
+            !await UserIsActiveAsync(user.Id, cancellationToken))
         {
             return InvalidRefreshToken();
         }
@@ -335,6 +347,13 @@ public sealed class AuthService(
                 item.Ciudad.Activo &&
                 item.Ciudad.Pais.Activo,
             cancellationToken);
+    }
+
+    private async Task<bool> UserIsActiveAsync(string userId, CancellationToken cancellationToken)
+    {
+        return !await dbContext.UsuariosPerfil
+            .AsNoTracking()
+            .AnyAsync(profile => profile.UserId == userId && !profile.Activo, cancellationToken);
     }
 
     private static string? TrimToMax(string? value, int maxLength)
