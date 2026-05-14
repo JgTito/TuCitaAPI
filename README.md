@@ -1,12 +1,12 @@
 # TuCita
 
-TuCita es una API web para una plataforma SaaS multi-negocio de reservas y citas. Permite que distintos negocios configuren sus servicios, prestadores, horarios, reglas de reserva, clientes, pagos, reseñas, reportes y notificaciones desde una misma base de datos, manteniendo la información separada por negocio.
+TuCita es una API web para una plataforma SaaS multi-negocio de reservas y citas. Permite que distintos negocios configuren sus servicios, prestadores, horarios, reglas de reserva, clientes, pagos, reseñas, reportes, informes inteligentes con IA y notificaciones desde una misma base de datos, manteniendo la información separada por negocio.
 
 El sistema está pensado para rubros como barberías, veterinarias, talleres mecánicos, centros de estética, profesionales independientes, restaurantes, canchas deportivas y centros de salud.
 
 ## Estado Del Proyecto
 
-Proyecto backend desarrollado con ASP.NET Core, Entity Framework Core, SQL Server e Identity. Incluye autenticación JWT, refresh tokens, autorización por roles, módulos operativos de agenda, pagos, notificaciones, auditoría, reseñas y reportes.
+Proyecto backend desarrollado con ASP.NET Core, Entity Framework Core, SQL Server e Identity. Incluye autenticación JWT, refresh tokens, autorización por roles, administración global de usuarios para SuperAdmin, módulos operativos de agenda, pagos, notificaciones, auditoría, reseñas, reportes e informes ejecutivos generados con IA.
 
 La solución usa una arquitectura por capas:
 
@@ -35,8 +35,9 @@ TuCita.Domain
 - BackgroundService para tareas en segundo plano
 - SMTP para correos
 - Flow sandbox para pagos online
+- Gemini API para informes inteligentes
 - Generación de reportes Excel
-- Generación de comprobantes PDF
+- Generación de comprobantes e informes PDF
 
 ## Módulos Principales
 
@@ -44,6 +45,7 @@ TuCita.Domain
 - Registro diferenciado para clientes y dueños de negocio.
 - Perfil de usuario con datos normalizados de contacto y ubicación.
 - Administración global para SuperAdmin.
+- Administración global de usuarios: búsqueda, creación, edición, activación/desactivación, roles y reseteo de contraseña.
 - Mantención de negocios, rubros y catálogos.
 - Usuarios por negocio con roles internos.
 - Invitaciones seguras por email con token hasheado, expiración y uso único.
@@ -62,6 +64,8 @@ TuCita.Domain
 - Comprobantes de pago en PDF.
 - Dashboard operativo.
 - Reportes profesionales exportables.
+- Informes inteligentes con IA para análisis ejecutivo del negocio.
+- Descarga de informes inteligentes en PDF.
 - Auditoría general.
 - Reseñas post-atención, configuración de reputación y reseñas públicas.
 - Centro de acciones operativas.
@@ -72,7 +76,7 @@ TuCita combina roles globales de Identity con roles internos por negocio.
 
 Roles principales:
 
-- `SuperAdmin`: administra la plataforma completa.
+- `SuperAdmin`: administra la plataforma completa, usuarios globales, roles, negocios y datos maestros.
 - `Owner`: dueño de un negocio.
 - `Admin`: administrador operativo del negocio.
 - `Recepcionista`: gestiona agenda, clientes y citas.
@@ -98,6 +102,7 @@ Roles principales:
 - Visual Studio 2026 o superior recomendado
 - Cuenta SMTP si se desea enviar correos reales
 - Credenciales Flow sandbox si se desea probar pagos online
+- API key de Gemini si se desea generar informes inteligentes con IA
 
 ## Configuración
 
@@ -124,6 +129,11 @@ Configuraciones importantes:
   "Flow": {
     "Enabled": false,
     "ApiBaseUrl": "https://sandbox.flow.cl/api"
+  },
+  "Gemini": {
+    "Enabled": false,
+    "ApiBaseUrl": "https://generativelanguage.googleapis.com/v1beta",
+    "Model": "gemini-3.1-flash-lite"
   }
 }
 ```
@@ -201,6 +211,8 @@ La API está organizada en controladores semánticos:
 - `ReportesNegocioController`: reportes descargables.
 - `AuditoriaController`, `AuditoriaGlobalController`: auditoría.
 - `CentroOperativoController`: acciones que requieren atención.
+- `InformesInteligentesController`: contexto analítico y descarga PDF de informes generados con IA.
+- `SuperAdminUsuariosController`: administración global de usuarios de la plataforma.
 - Catálogos: rubros, roles de negocio, tipos de campo, estados, canales y tipos de notificación.
 
 ## Pagos
@@ -293,6 +305,66 @@ El backend incluye endpoints para construir paneles y reportes:
 - Métricas de reputación.
 - Reseñas recientes y distribución por estrellas.
 - Acciones operativas pendientes.
+
+## Informes Inteligentes Con IA
+
+El módulo de informes inteligentes prepara un contexto analítico del negocio y permite generar un informe ejecutivo con IA para apoyar decisiones operativas.
+
+Analiza:
+
+- Citas registradas, atendidas, canceladas y no asistidas.
+- Servicios con mayor y menor demanda.
+- Horarios de alta y baja ocupación.
+- Días con más reservas y cancelaciones.
+- Prestadores con mayor carga o menor ocupación.
+- Clientes nuevos frente a clientes recurrentes.
+- Ingresos estimados, ticket promedio y ocupación de agenda.
+- Tendencias contra el período anterior cuando corresponde.
+
+Endpoints principales:
+
+- `GET /api/negocios/{idNegocio}/informes-inteligentes/contexto`: devuelve el contexto estructurado para análisis o integración con frontend.
+- `GET /api/negocios/{idNegocio}/informes-inteligentes/descargar`: genera el informe con Gemini y descarga un PDF.
+
+La integración con Gemini es configurable por entorno:
+
+```json
+{
+  "Gemini": {
+    "Enabled": true,
+    "ApiBaseUrl": "https://generativelanguage.googleapis.com/v1beta",
+    "Model": "gemini-3.1-flash-lite",
+    "TimeoutSeconds": 60,
+    "Temperature": 0.35,
+    "MaxOutputTokens": 4096
+  }
+}
+```
+
+La API key debe configurarse fuera del repositorio mediante user-secrets, variables de entorno o el sistema de secretos del ambiente donde se despliegue.
+
+## Administración Global De Usuarios
+
+El SuperAdmin cuenta con un módulo para administrar usuarios de toda la plataforma sin depender de un negocio específico.
+
+Permite:
+
+- Buscar y paginar usuarios globales.
+- Filtrar por texto, rol, estado y otros criterios administrativos.
+- Crear usuarios desde administración.
+- Editar datos principales del usuario.
+- Activar o desactivar cuentas.
+- Asignar o reemplazar roles globales.
+- Resetear contraseña con trazabilidad administrativa.
+- Consultar los negocios asociados a cada usuario.
+
+Endpoint base:
+
+```text
+/api/super-admin/usuarios
+```
+
+Este módulo está protegido por rol `SuperAdmin` y complementa la administración interna de usuarios por negocio, que sigue gestionándose mediante invitaciones y roles de negocio.
 
 ## Reseñas Y Reputación
 

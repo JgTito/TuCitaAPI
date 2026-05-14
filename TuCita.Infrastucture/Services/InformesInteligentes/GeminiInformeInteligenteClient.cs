@@ -69,25 +69,47 @@ internal sealed class GeminiInformeInteligenteClient(IOptions<GeminiOptions> opt
             }
         }, options: JsonOptions);
 
-        using var response = await HttpClient.SendAsync(request, timeoutCts.Token);
-        var body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
-
-        if (!response.IsSuccessStatusCode)
+        string body;
+        try
         {
+            using var response = await HttpClient.SendAsync(request, timeoutCts.Token);
+            body = await response.Content.ReadAsStringAsync(timeoutCts.Token);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var text = ExtractText(body);
+                if (string.IsNullOrWhiteSpace(text))
+                {
+                    return ServiceResult<InformeAiGenerationResult>.Validation([
+                        new ValidationError(string.Empty, "Gemini no devolvió contenido para el informe.")
+                    ]);
+                }
+
+                return ServiceResult<InformeAiGenerationResult>.Success(new InformeAiGenerationResult(text.Trim(), settings.Model.Trim()));
+            }
+
             return ServiceResult<InformeAiGenerationResult>.Validation([
                 new ValidationError(string.Empty, $"Gemini rechazó la generación del informe: {SanitizeError(body)}")
             ]);
         }
-
-        var text = ExtractText(body);
-        if (string.IsNullOrWhiteSpace(text))
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             return ServiceResult<InformeAiGenerationResult>.Validation([
-                new ValidationError(string.Empty, "Gemini no devolvió contenido para el informe.")
+                new ValidationError(string.Empty, "Gemini no respondió dentro del tiempo configurado.")
             ]);
         }
-
-        return ServiceResult<InformeAiGenerationResult>.Success(new InformeAiGenerationResult(text.Trim(), settings.Model.Trim()));
+        catch (HttpRequestException ex)
+        {
+            return ServiceResult<InformeAiGenerationResult>.Validation([
+                new ValidationError(string.Empty, $"No se pudo conectar con Gemini: {ex.Message}")
+            ]);
+        }
+        catch (JsonException ex)
+        {
+            return ServiceResult<InformeAiGenerationResult>.Validation([
+                new ValidationError(string.Empty, $"Gemini devolvió una respuesta no válida: {ex.Message}")
+            ]);
+        }
     }
 
     private static Uri BuildEndpoint(GeminiOptions settings)

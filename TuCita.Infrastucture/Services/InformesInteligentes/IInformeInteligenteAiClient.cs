@@ -3,13 +3,13 @@ using TuCita.Application.InformesInteligentes;
 
 namespace TuCita.Infrastucture.InformesInteligentes;
 
-internal interface IInformeInteligenteAiClient
+public interface IInformeInteligenteAiClient
 {
     Task<ServiceResult<InformeAiGenerationResult>> GenerarInformeAsync(
         InformeInteligenteContextoDto contexto,
         CancellationToken cancellationToken);
 }
 
-internal sealed record InformeAiGenerationResult(
+public sealed record InformeAiGenerationResult(
     string Text,
     string Model);

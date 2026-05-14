@@ -62,11 +62,20 @@ public sealed class InformesInteligentesController(IInformeInteligenteService in
             return File(result.Data.Content, result.Data.ContentType, result.Data.FileName);
         }
 
+        if (result.Status == ServiceResultStatus.Validation)
+        {
+            foreach (var error in result.ValidationErrors)
+            {
+                ModelState.AddModelError(error.Field, error.Message);
+            }
+
+            return ValidationProblem(ModelState);
+        }
+
         return result.Status switch
         {
             ServiceResultStatus.NotFound => NotFound(result.Errors),
             ServiceResultStatus.Forbidden => Forbid(),
-            ServiceResultStatus.Validation => ToValidationProblem<InformeInteligenteArchivoDto>(result.ValidationErrors).Result!,
             _ => BadRequest(result.Errors)
         };
     }
